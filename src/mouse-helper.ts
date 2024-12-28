@@ -29,6 +29,7 @@ async function installMouseHelper(page: Page): Promise<void> {
         p-mouse-pointer.button-1 {
           transition: none;
           background: rgba(0,0,0,0.9);
+          border: 10px solid green;
         }
         p-mouse-pointer.button-2 {
           transition: none;
