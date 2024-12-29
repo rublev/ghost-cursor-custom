@@ -23,11 +23,11 @@ async function installMouseHelper (page: Page): Promise<void> {
           margin: -24px 0 0 -24px;
           padding: 0;
           transition: transform .2s;
-          transform: translate(12px, 22px);
+          transform: translate(14px, 22px);
         }
         p-mouse-pointer.button-1 {
           // transition: none;
-          transform: translate(12px, 22px) scale(0.8);
+          transform: translate(14px, 22px) scale(0.8);
         }
         p-mouse-pointer.button-2 {
           // transition: none;
