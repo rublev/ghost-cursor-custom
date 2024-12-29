@@ -4,12 +4,20 @@ export interface Vector {
   x: number
   y: number
 }
+
+export interface BoundingBox {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 export interface TimedVector extends Vector {
   timestamp: number
 }
 export const origin: Vector = { x: 0, y: 0 }
 
-// maybe i should've just imported a vector library lol
+// Basic vector operations
 export const sub = (a: Vector, b: Vector): Vector => ({
   x: a.x - b.x,
   y: a.y - b.y
@@ -28,74 +36,40 @@ export const add = (a: Vector, b: Vector): Vector => ({
 })
 
 export const direction = (a: Vector, b: Vector): Vector => sub(b, a)
-export const perpendicular = (a: Vector): Vector => ({ x: a.y, y: -1 * a.x })
 export const magnitude = (a: Vector): number =>
   Math.sqrt(Math.pow(a.x, 2) + Math.pow(a.y, 2))
-export const unit = (a: Vector): Vector => div(a, magnitude(a))
-export const setMagnitude = (a: Vector, amount: number): Vector =>
-  mult(unit(a), amount)
 
-export const randomNumberRange = (min: number, max: number): number =>
-  Math.random() * (max - min) + min
+// Added back for compatibility, but now just returns the original coordinate
+export const overshoot = (coordinate: Vector, radius: number): Vector =>
+  coordinate
 
-export const randomVectorOnLine = (a: Vector, b: Vector): Vector => {
-  const vec = direction(a, b)
-  const multiplier = Math.random()
-  return add(a, mult(vec, multiplier))
-}
-
-const randomNormalLine = (
-  a: Vector,
-  b: Vector,
-  range: number
-): [Vector, Vector] => {
-  const randMid = randomVectorOnLine(a, b)
-  const normalV = setMagnitude(perpendicular(direction(a, randMid)), range)
-  return [randMid, normalV]
-}
-
-export const generateBezierAnchors = (
-  a: Vector,
-  b: Vector,
-  spread: number
-): [Vector, Vector] => {
-  const side = Math.round(Math.random()) === 1 ? 1 : -1
-  const calc = (): Vector => {
-    const [randMid, normalV] = randomNormalLine(a, b, spread)
-    const choice = mult(normalV, side)
-    return randomVectorOnLine(randMid, add(randMid, choice))
-  }
-  return [calc(), calc()].sort((a, b) => a.x - b.x) as [Vector, Vector]
-}
-
-const clamp = (target: number, min: number, max: number): number =>
-  Math.min(max, Math.max(min, target))
-
-export const overshoot = (coordinate: Vector, radius: number): Vector => {
-  const a = Math.random() * 2 * Math.PI
-  const rad = radius * Math.sqrt(Math.random())
-  const vector = { x: rad * Math.cos(a), y: rad * Math.sin(a) }
-  return add(coordinate, vector)
-}
-
+// Simplified bezier curve that creates a more direct path
 export const bezierCurve = (
   start: Vector,
-  finish: Vector,
-  /**
-   * Default is length from start to finish, clamped to 2 < x < 200
-   */
+  finish: Vector | BoundingBox,
   spreadOverride?: number
 ): Bezier => {
-  // could be played around with
-  const MIN_SPREAD = 0
-  const MAX_SPREAD = 0
-  const vec = direction(start, finish)
-  const length = magnitude(vec)
-  const spread = spreadOverride ?? clamp(length, MIN_SPREAD, MAX_SPREAD)
-  const anchors = generateBezierAnchors(start, finish, spread)
-  return new Bezier(start, ...anchors, finish)
+  const end: Vector =
+    'x' in finish && !('width' in finish)
+      ? finish
+      : {
+          x: finish.x + finish.width / 2,
+          y: finish.y + finish.height / 2
+        }
+
+  // Create control points that are closer to the line for more direct movement
+  const dir = direction(start, end)
+  const dist = magnitude(dir)
+  const unit = div(dir, dist)
+
+  // Control points at 1/3 and 2/3 of the distance
+  const cp1 = add(start, mult(unit, dist * 0.33))
+  const cp2 = add(start, mult(unit, dist * 0.66))
+
+  return new Bezier(start, cp1, cp2, end)
 }
 
+// Calculate speed based on distance for smooth acceleration/deceleration
 export const bezierCurveSpeed = (
   t: number,
   P0: Vector,
