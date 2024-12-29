@@ -7,6 +7,8 @@ const log = debug('ghost-cursor')
 
 interface MoveOptions {
   waitForSelector?: number
+  moveDelay?: number
+  moveSpeed?: number
 }
 
 interface ClickOptions extends MoveOptions {
@@ -22,7 +24,7 @@ interface GhostCursor {
     selector: string | ElementHandle,
     options?: MoveOptions
   ) => Promise<void>
-  moveTo: (destination: Vector) => Promise<void>
+  moveTo: (destination: Vector, options?: MoveOptions) => Promise<void>
 }
 
 /** Helper function to wait a specified number of milliseconds */
@@ -91,6 +93,7 @@ export const createCursor = (
       await page.mouse.down()
       await delay(50) // Small delay between down and up
       await page.mouse.up()
+      await delay(options.moveDelay ?? 0)
     },
 
     async move (
@@ -123,11 +126,16 @@ export const createCursor = (
 
       const box = await getElementBox(page, element)
       const destination = getBoxCenter(box)
-      await tracePath(path(previous, destination))
+      await tracePath(path(previous, destination, options.moveSpeed))
+      await delay(options.moveDelay ?? 0)
     },
 
-    async moveTo (destination: Vector): Promise<void> {
-      await tracePath(path(previous, destination))
+    async moveTo (
+      destination: Vector,
+      options: MoveOptions = {}
+    ): Promise<void> {
+      await tracePath(path(previous, destination, options.moveSpeed))
+      await delay(options.moveDelay ?? 0)
     }
   }
 }
