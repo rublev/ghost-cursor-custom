@@ -9,6 +9,7 @@ interface MoveOptions {
   waitForSelector?: number
   moveDelay?: number
   moveSpeed?: number
+  paddingPercentage?: number
 }
 
 interface ClickOptions extends MoveOptions {
@@ -126,6 +127,14 @@ export const createCursor = (
 
       const box = await getElementBox(page, element)
       const destination = getBoxCenter(box)
+
+      // Apply padding to move cursor to center if specified
+      if (options.paddingPercentage !== undefined) {
+        const padding = options.paddingPercentage / 100
+        destination.x = box.x + box.width * padding
+        destination.y = box.y + box.height * padding
+      }
+
       await tracePath(path(previous, destination, options.moveSpeed))
       await delay(options.moveDelay ?? 0)
     },
