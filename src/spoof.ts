@@ -9,7 +9,6 @@ interface MoveOptions {
   waitForSelector?: number
   moveDelay?: number
   moveSpeed?: number
-  paddingPercentage?: number
 }
 
 interface ClickOptions extends MoveOptions {
@@ -18,7 +17,7 @@ interface ClickOptions extends MoveOptions {
 
 interface GhostCursor {
   click: (
-    selector: string | ElementHandle,
+    selector?: string | ElementHandle,
     options?: ClickOptions
   ) => Promise<void>
   move: (
@@ -71,7 +70,9 @@ export const createCursor = (
         await cdpClient.send('Input.dispatchMouseEvent', {
           type: 'mouseMoved',
           x: point.x,
-          y: point.y
+          y: point.y,
+          button: 'none',
+          buttons: 0
         })
         previous = point
         await delay(10) // Small delay for smooth movement
@@ -86,14 +87,39 @@ export const createCursor = (
 
   return {
     async click (
-      selector: string | ElementHandle,
+      selector?: string | ElementHandle,
       options: ClickOptions = {}
     ): Promise<void> {
-      await this.move(selector, options)
+      if (typeof selector !== 'undefined') {
+        await this.move(selector, options)
+      }
+
       await delay(options.waitForClick ?? 0)
-      await page.mouse.down()
+
+      const cdpClient = getCDPClient(page)
+
+      // Mouse down event
+      await cdpClient.send('Input.dispatchMouseEvent', {
+        type: 'mousePressed',
+        x: previous.x,
+        y: previous.y,
+        button: 'left',
+        buttons: 1,
+        clickCount: 1
+      })
+
       await delay(50) // Small delay between down and up
-      await page.mouse.up()
+
+      // Mouse up event
+      await cdpClient.send('Input.dispatchMouseEvent', {
+        type: 'mouseReleased',
+        x: previous.x,
+        y: previous.y,
+        button: 'left',
+        buttons: 0,
+        clickCount: 1
+      })
+
       await delay(options.moveDelay ?? 0)
     },
 
@@ -127,14 +153,6 @@ export const createCursor = (
 
       const box = await getElementBox(page, element)
       const destination = getBoxCenter(box)
-
-      // Apply padding to move cursor to center if specified
-      if (options.paddingPercentage !== undefined) {
-        const padding = options.paddingPercentage / 100
-        destination.x = box.x + box.width * padding
-        destination.y = box.y + box.height * padding
-      }
-
       await tracePath(path(previous, destination, options.moveSpeed))
       await delay(options.moveDelay ?? 0)
     },
