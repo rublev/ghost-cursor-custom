@@ -43,28 +43,40 @@ export const magnitude = (a: Vector): number =>
 export const overshoot = (coordinate: Vector, radius: number): Vector =>
   coordinate
 
-// Simplified bezier curve that creates a more direct path
+// Get the center point of a bounding box
+const getBoxCenter = (box: BoundingBox): Vector => ({
+  x: box.x + box.width / 2,
+  y: box.y + box.height / 2
+})
+
+// Simplified bezier curve that creates a smoother path
 export const bezierCurve = (
   start: Vector,
   finish: Vector | BoundingBox,
   spreadOverride?: number
 ): Bezier => {
-  const end: Vector =
-    'x' in finish && !('width' in finish)
-      ? finish
-      : {
-          x: finish.x + finish.width / 2,
-          y: finish.y + finish.height / 2
-        }
+  // Always get center point if it's a bounding box
+  const end: Vector = 'width' in finish ? getBoxCenter(finish) : finish
 
-  // Create control points that are closer to the line for more direct movement
   const dir = direction(start, end)
   const dist = magnitude(dir)
-  const unit = div(dir, dist)
 
-  // Control points at 1/3 and 2/3 of the distance
-  const cp1 = add(start, mult(unit, dist * 0.33))
-  const cp2 = add(start, mult(unit, dist * 0.66))
+  // Adjust control points based on distance for smoother movement
+  // const midPoint = add(start, mult(dir, 0.5))
+
+  // For shorter distances, make curve gentler
+  const curveIntensity = Math.min(dist / 800, 0.3)
+
+  // Create slight arc for more natural movement
+  const perpendicular = { x: -dir.y, y: dir.x }
+  const normalizedPerp = mult(
+    div(perpendicular, magnitude(perpendicular)),
+    dist * curveIntensity
+  )
+
+  // Control points form a slight arc
+  const cp1 = add(add(start, mult(dir, 0.25)), mult(normalizedPerp, 0.5))
+  const cp2 = add(add(start, mult(dir, 0.75)), mult(normalizedPerp, 0.5))
 
   return new Bezier(start, cp1, cp2, end)
 }
@@ -77,6 +89,9 @@ export const bezierCurveSpeed = (
   P2: Vector,
   P3: Vector
 ): number => {
+  // Slower at start and end, faster in middle
+  const speedFactor = Math.sin(t * Math.PI) * 0.5 + 0.5
+
   const B1 =
     3 * (1 - t) ** 2 * (P1.x - P0.x) +
     6 * (1 - t) * t * (P2.x - P1.x) +
@@ -85,5 +100,6 @@ export const bezierCurveSpeed = (
     3 * (1 - t) ** 2 * (P1.y - P0.y) +
     6 * (1 - t) * t * (P2.y - P1.y) +
     3 * t ** 2 * (P3.y - P2.y)
-  return Math.sqrt(B1 ** 2 + B2 ** 2)
+
+  return Math.sqrt(B1 ** 2 + B2 ** 2) * speedFactor
 }
