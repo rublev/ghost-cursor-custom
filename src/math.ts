@@ -17,13 +17,12 @@ export function * path (
   end: Vector,
   speed: number = 1
 ): Generator<Vector> {
-  // More steps for slower speed = smoother movement
+  // Number of steps - more steps = smoother movement
   const steps = Math.max(50, Math.floor(100 / speed))
 
   for (let i = 0; i <= steps; i++) {
-    // Smooth easing using a combination of sine and cubic for better deceleration
-    const t = i / steps
-    const ease = Math.sin((t * Math.PI) / 2) * (1 - t * t * 0.3 + t * 0.5)
-    yield interpolate(start, end, ease)
+    // Smooth easing using sine
+    const t = Math.sin(((i / steps) * Math.PI) / 2)
+    yield interpolate(start, end, t)
   }
 }
