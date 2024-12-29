@@ -605,7 +605,7 @@ export const createCursor = (
 
         previous = destination
 
-        actions.toggleRandomMove(true)
+        actions.toggleRandomMove(false)
 
         const newBoundingBox = await boundingBoxWithFallback(page, elem)
 
