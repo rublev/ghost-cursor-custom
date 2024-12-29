@@ -49,7 +49,7 @@ const getBoxCenter = (box: BoundingBox): Vector => ({
   y: box.y + box.height / 2
 })
 
-// Simplified bezier curve that creates a smoother path
+// Simplified bezier curve that creates a straight line path
 export const bezierCurve = (
   start: Vector,
   finish: Vector | BoundingBox,
@@ -60,23 +60,12 @@ export const bezierCurve = (
 
   const dir = direction(start, end)
   const dist = magnitude(dir)
+  const unit = div(dir, dist)
 
-  // Adjust control points based on distance for smoother movement
-  // const midPoint = add(start, mult(dir, 0.5))
-
-  // For shorter distances, make curve gentler
-  const curveIntensity = Math.min(dist / 800, 0.3)
-
-  // Create slight arc for more natural movement
-  const perpendicular = { x: -dir.y, y: dir.x }
-  const normalizedPerp = mult(
-    div(perpendicular, magnitude(perpendicular)),
-    dist * curveIntensity
-  )
-
-  // Control points form a slight arc
-  const cp1 = add(add(start, mult(dir, 0.25)), mult(normalizedPerp, 0.5))
-  const cp2 = add(add(start, mult(dir, 0.75)), mult(normalizedPerp, 0.5))
+  // Place control points directly on the line between start and end
+  // This ensures a straight path with no drift
+  const cp1 = add(start, mult(unit, dist * 0.33))
+  const cp2 = add(start, mult(unit, dist * 0.66))
 
   return new Bezier(start, cp1, cp2, end)
 }
