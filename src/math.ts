@@ -11,6 +11,18 @@ export const interpolate = (start: Vector, end: Vector, t: number): Vector => ({
   y: start.y + (end.y - start.y) * t
 })
 
+// Custom easing function for human-like movement
+const ease = (t: number): number => {
+  // Quick acceleration followed by slow deceleration
+  // Accelerate quickly in first 30% of movement
+  if (t < 0.3) {
+    return t * t * 3.33 // Quadratic acceleration
+  }
+  // Slow deceleration for remaining 70%
+  const decel = (t - 0.3) / 0.7
+  return 0.3 + (1 - 0.3) * (1 - Math.pow(1 - decel, 3))
+}
+
 // Generate a smooth path between two points
 export function * path (
   start: Vector,
@@ -21,8 +33,7 @@ export function * path (
   const steps = Math.max(50, Math.floor(100 / speed))
 
   for (let i = 0; i <= steps; i++) {
-    // Smooth easing using sine
-    const t = Math.sin(((i / steps) * Math.PI) / 2)
-    yield interpolate(start, end, t)
+    const t = i / steps
+    yield interpolate(start, end, ease(t))
   }
 }
